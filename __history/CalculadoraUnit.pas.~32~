@@ -1,0 +1,136 @@
+unit CalculadoraUnit;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, ComObj;
+
+type
+  TForm1 = class(TForm)
+    Label1: TLabel;
+    horaEntrada: TEdit;
+    Label2: TLabel;
+    horaSaida: TEdit;
+    CalcularB: TButton;
+    Memo1: TMemo;
+    SaidaB: TButton;
+    EntradaB: TButton;
+    GerarExcel: TButton;
+    Memo2: TMemo;
+    AtualizarExcel: TButton;
+    Status: TLabel;
+    procedure CalcularBClick(Sender: TObject);
+    procedure EntradaBClick(Sender: TObject);
+    procedure SaidaBClick(Sender: TObject);
+    procedure GerarExcelClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.CalcularBClick(Sender: TObject);
+var
+  Entrada, Saida, Trabalhadas: TDateTime;
+begin
+  // Converter os valores das caixas de entrada para DateTime
+  Entrada := StrToTime(horaEntrada.Text);
+  Saida := StrToTime(horaSaida.Text);
+
+  // Calcular a diferença entre a hora de saída e a hora de entrada
+  Trabalhadas := Saida - Entrada;
+
+  // Exibir o resultado no Memo1
+  Memo1.Lines.Add(FormatDateTime('hh:nn:ss', Trabalhadas));
+  Memo2.Lines.Add(FormatDateTime('dd/mm/yyyy', Now));
+
+  //Habilitar para editar caixas de novo
+  EntradaB.Enabled := True;
+  CalcularB.Enabled := False;
+
+  //Habilitar para gerar o Excel
+  GerarExcel.Enabled := True;
+
+  //Habilitar para atualizar uma planilha
+  AtualizarExcel.Enabled := True;
+
+end;
+
+
+procedure TForm1.EntradaBClick(Sender: TObject); // Botão de Entrada
+begin
+  SaidaB.Enabled := True;
+  EntradaB.Enabled := False;
+  horaEntrada.Text := FormatDateTime('hh:nn:ss', Now);
+  Status.Enabled := True;
+  Status.Font.Color := clLime;
+  Status.Caption := 'Trabalhando...';
+end;
+
+procedure TForm1.SaidaBClick(Sender: TObject); // Botão de Saída
+begin
+  SaidaB.Enabled := False;
+  CalcularB.Enabled := True;
+  horaSaida.Text := FormatDateTime('hh:nn:ss', Now);
+end;
+
+procedure TForm1.GerarExcelClick(Sender: TObject);  //Botão de Gerar Excel
+ var
+   ExcelApp, Planilha, PlanilhaAtiva: Variant;
+   horaString: string;
+   dateString: string;
+   horaExcel: TDateTime;
+   dateExcel: TDate;
+   linha: integer;
+   maxLinhas: integer;
+   openFileDialog: TOpenDialog;
+
+   begin
+      ExcelApp := CreateOleObject('Excel.Application');
+      ExcelApp.Visible := True;
+      Planilha := ExcelApp.Workbooks.Add;
+      PlanilhaAtiva := Planilha.ActiveSheet;
+
+      // Adicionar cabeçalho
+      Planilha.Sheets[1].Cells[1, 1] := 'Data';
+      Planilha.Sheets[1].Cells[1, 2] := 'Horas Trabalhadas';
+
+      // Determinar o número máximo de linhas entre Memo1 e Memo2
+        if Memo1.Lines.Count > Memo2.Lines.Count then
+        maxLinhas := Memo1.Lines.Count
+      else
+        maxLinhas := Memo2.Lines.Count;
+
+      // Loop para cada linha do Memo1 e Memo2
+      for linha := 1 to maxLinhas do
+      begin
+        // Obtém a string de hora do Memo1
+        if linha <= Memo1.Lines.Count then
+        begin
+          horaString := Memo1.Lines[linha - 1];
+          horaExcel := StrToTime(horaString);
+          PlanilhaAtiva.Cells[linha + 1, 2] := FormatDateTime('hh:nn:ss', horaExcel);
+        end;
+
+        // Obtém a string da data do Memo2
+        if linha <= Memo2.Lines.Count then
+        begin
+          dateString := Memo2.Lines[linha - 1];
+          dateExcel := StrToDate(dateString);
+          PlanilhaAtiva.Cells[linha + 1, 1] := FormatDateTime('dd/mm/yyyy', dateExcel);
+        end;
+      end;
+
+   // Salvar o arquivo
+   Planilha.SaveAs('C:\Users\User\Desktop\horastrabalhadas.xlsx');
+   ExcelApp.Quit;
+   end;
+end.
